@@ -20,6 +20,7 @@ local SoundFolder = SoundService.TempSounds
 local function DataAnchorBehaviour(self: Types.Ability)
     if RunService:IsServer() then
         if self.Setup then
+            PlayerSpeedManager.AddSpeedFactor(self.Owner, self.Name, 0)
             self.OwnerProperties.Character:PivotTo(self.PositionInfo)
         
             if self.TeleporterInstance then
@@ -28,6 +29,10 @@ local function DataAnchorBehaviour(self: Types.Ability)
         
             self.PositionInfo = nil
             self.Setup = false
+
+            self:AddConnection(task.delay(2.1, function()
+                PlayerSpeedManager.RemoveSpeedFactor(self.Owner, self.Name)
+            end))
         else
             self.Setup = true
         
@@ -44,7 +49,8 @@ local function DataAnchorBehaviour(self: Types.Ability)
             self:AddConnection(task.delay(0.917, function()
                 local TpInstance = self.CharModule.Config.TeleporterPrefab:Clone()
                 TpInstance:PivotTo(CFrame.new(self.DevicePosition))
-                TpInstance.Parent = workspace.Map.InGame
+                local InGameFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("InGame")
+                TpInstance.Parent = InGameFolder or workspace:FindFirstChild("TempObjectFolders")
                 self.PositionInfo = self.OwnerProperties.Character:GetPivot()
                 self.TeleporterInstance = TpInstance
             end))
@@ -57,12 +63,7 @@ local function DataAnchorBehaviour(self: Types.Ability)
             self.Cooldown = self.SecondCooldown
             self.Setup = true
         
-            self.OwnerProperties.SpeedManager:AddSpeedFactor(self.Name, 0)
-        
             self:PlayUseAnimation()
-            self:AddConnection(task.delay((self.UseAnimationTrack.Length or 1.7) + 0.4, function()
-                self.OwnerProperties.SpeedManager:RemoveSpeedFactor(self.Name)
-            end))
         end
     end
 end
