@@ -76,7 +76,7 @@ local function CallbackPingBehaviour(self: Types.Ability)
         self.OwnerProperties.Character:SetAttribute("PreventSlash", true)
 
         self:AddConnection(task.delay(self.Duration, function()
-            PlayerSpeedManager.RemoveSpeedFactor(self.owner, self.Name)
+            PlayerSpeedManager.RemoveSpeedFactor(self.Owner, self.Name)
             self.OwnerProperties.Character:SetAttribute("PreventSlash", false)
         end))
 
