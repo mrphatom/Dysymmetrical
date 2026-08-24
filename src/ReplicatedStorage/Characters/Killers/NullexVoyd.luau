@@ -20,7 +20,6 @@ local SoundFolder = SoundService.TempSounds
 local function DataAnchorBehaviour(self: Types.Ability)
     if RunService:IsServer() then
         if self.Setup then
-            PlayerSpeedManager.AddSpeedFactor(self.Owner, self.Name, 0)
             self.OwnerProperties.Character:PivotTo(self.PositionInfo)
         
             if self.TeleporterInstance then
@@ -29,12 +28,15 @@ local function DataAnchorBehaviour(self: Types.Ability)
         
             self.PositionInfo = nil
             self.Setup = false
-
-            self:AddConnection(task.delay(2.1, function()
-                PlayerSpeedManager.RemoveSpeedFactor(self.Owner, self.Name)
-            end))
         else
             self.Setup = true
+            PlayerSpeedManager.AddSpeedFactor(self.Owner, self.Name, 0)
+
+            self:AddConnection(task.delay(2.1, function()
+                if self.Setup then
+                    PlayerSpeedManager.RemoveSpeedFactor(self.Owner, self.Name)
+                end
+            end))
         
             self:AddConnection(task.delay(0.75, function()
                 self.DevicePosition = self.OwnerProperties.Character.HumanoidRootPart.Position - Vector3.new(0, 3 * self.OwnerProperties.Character:GetScale(), 0)
