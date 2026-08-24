@@ -55,21 +55,34 @@ function CommonFunctions:Init()
 	Network:SetConnection("HasPermRank", "REMOTE_FUNCTION", function(Player: Player, Rank: string | number): boolean
 		return CommonFunctions.PlayerHasPermissionRank(Player, Rank)
 	end)
-	Network:SetConnection("ExecuteCommand", "REMOTE_FUNCTION", function(Player: Player, CommandName: string, ...)
-        if CommonFunctions.CommandDebounce[Player.UserId] and not CommonFunctions.PlayerHasPermissionRank(Player, CommonFunctions.Commands[CommandName].RankRequired or Utils.Ranks.ServerOwner) or CommonFunctions.Commands[CommandName] == nil then
-            return
-        end
-		
-		task.defer(function()
-			CommonFunctions.CommandDebounce[Player.UserId] = 0.5
-			while CommonFunctions.CommandDebounce[Player.UserId] > 0 do
-				CommonFunctions.CommandDebounce[Player.UserId] -= task.wait(0.05)
+		Network:SetConnection("ExecuteCommand", "REMOTE_FUNCTION", function(Player: Player, CommandName: string, ...)
+			if typeof(CommandName) ~= "string" or #CommandName > 64 then
+				return
 			end
-			CommonFunctions.CommandDebounce[Player.UserId] = nil
+
+			local Command = CommonFunctions.Commands[CommandName]
+			if not Command then
+				return
+			end
+
+			local RequiredRank = Command.RankRequired or Utils.Ranks.ServerOwner
+			if not CommonFunctions.PlayerHasPermissionRank(Player, RequiredRank) then
+				return
+			end
+			if CommonFunctions.CommandDebounce[Player.UserId] then
+				return
+			end
+
+			CommonFunctions.CommandDebounce[Player.UserId] = 0.5
+			task.defer(function()
+				while CommonFunctions.CommandDebounce[Player.UserId] > 0 do
+					CommonFunctions.CommandDebounce[Player.UserId] -= task.wait(0.05)
+				end
+				CommonFunctions.CommandDebounce[Player.UserId] = nil
+			end)
+
+			return Command:Executed(...)
 		end)
-        
-        return CommonFunctions.Commands[CommandName]:Executed(...)
-    end)
 end
 
 type DamagePlayerSettings = {
