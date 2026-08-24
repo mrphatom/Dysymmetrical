@@ -32,7 +32,12 @@ end
 
 --- Picks a random map from `ServerStorage.Assets.Maps` and inits everything related to it, setting it as `Map` in `workspace`.
 --- If `MapManager.CanRepeatMap` is true, the map will never be the same to the one chosen the round before for variety.
-function MapManager.GetRandomMap(): Model | Folder
+function MapManager.GetRandomMap(): Model | Folder | nil
+    if not MapManager.MapPrefabs or #MapManager.MapPrefabs <= 0 then
+        warn("[MapManager.GetRandomMap()] No valid maps are available in ServerStorage.Maps.")
+        return nil
+    end
+
     --chooses a random map
     local SelectedMap = MapManager.MapPrefabs[Rand:NextInteger(1, #MapManager.MapPrefabs)]
     --if it's the same as the one before it chooses a different one
@@ -64,6 +69,25 @@ function MapManager.GetRandomMap(): Model | Folder
     --TODO: make random PickableItem spawns
 
     local ActualMap = MapInstance:FindFirstChild("Map")
+    if not ActualMap then
+        warn("[MapManager.GetRandomMap()] The selected map has no Map container.")
+        MapInstance:Destroy()
+        return nil
+    end
+
+    local Spawnpoints = ActualMap:FindFirstChild("SpawnPoints")
+    if not Spawnpoints then
+        warn("[MapManager.GetRandomMap()] The selected map has no SpawnPoints folder.")
+        MapInstance:Destroy()
+        return nil
+    end
+
+    local AvailableLayouts = Spawnpoints:GetChildren()
+    if #AvailableLayouts <= 0 then
+        warn("[MapManager.GetRandomMap()] The selected map has no spawn layouts.")
+        MapInstance:Destroy()
+        return nil
+    end
 
     task.spawn(function()
         --checks if there are item spawn spots around
@@ -131,8 +155,6 @@ function MapManager.GetRandomMap(): Model | Folder
     end)
 
     --checks if there's more than 1 layout available
-    local Spawnpoints = ActualMap:FindFirstChild("SpawnPoints")
-    local AvailableLayouts = Spawnpoints:GetChildren()
     if #AvailableLayouts > 2 then
         --chooses a random layout from the spawnpoint pool
         local ChosenLayout = AvailableLayouts[Rand:NextInteger(1, #AvailableLayouts)]

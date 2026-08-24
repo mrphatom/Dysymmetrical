@@ -58,7 +58,12 @@ function RoundManager.StartRound()
     end)
 
     --spawns in the map
-    MapManager.GetRandomMap()
+    if not MapManager.GetRandomMap() then
+        Utils.Player.Fade(LoadedPlayers, "Out", 0.6, true)
+        TimeManager.SetTime(TimeManager.Config.LobbyTime)
+        TimeManager.CanDecreaseTime = true
+        return
+    end
     
     --gets the killers for the round
     for killerIndex = 1, workspace:GetAttribute("KillersAllowed") do
@@ -254,22 +259,17 @@ function RoundManager.Callables._OnPlayerDeath(dead: Player, wasKiller: boolean?
     if wasKiller then
         --updates killer losses
         CommonFunctions.UpdatePlayerStat(dead, "KillerStats.KillerLosses", 1)
-        --removes killer from table using table index
-        RoundManager.CurrentRound.Killers[RoundManager.CurrentRound.KillerIndex[dead]] = nil
-        RoundManager.CurrentRound.KillerIndex[dead] = nil
-        --resorts to maintain the minimum indexes possible
-        table.clear(RoundManager.CurrentRound.KillerIndex)
-        table.sort(RoundManager.CurrentRound.Killers)
-        local NewTable = {}
-        --resets indexes in order
-        for _, killer in ipairs(RoundManager.CurrentRound.Killers) do
-            table.insert(NewTable, killer)
+        --removes the killer from the array without sorting table values
+        local KillerIndex = RoundManager.CurrentRound.KillerIndex[dead]
+        if KillerIndex then
+            table.remove(RoundManager.CurrentRound.Killers, KillerIndex)
         end
-        --sets the indexes in KillerIndex for the next killer removal
-        for index, killer in ipairs(NewTable) do
+
+        --rebuild indexes after removal
+        table.clear(RoundManager.CurrentRound.KillerIndex)
+        for index, killer in ipairs(RoundManager.CurrentRound.Killers) do
             RoundManager.CurrentRound.KillerIndex[killer.Player] = index
         end
-        RoundManager.CurrentRound.Killers = NewTable
     else
         RoundManager.CurrentRound.PlayersRemaining[dead.UserId] = nil --removing from remaining list
     end
@@ -286,6 +286,11 @@ end
 --- Checks which role won by seeing how many players are left in each one.
 --- Also used to check for LMS.
 function RoundManager.Utils.CheckForKillerWin()
+    if workspace:GetAttribute("ObjectivesComplete") == true then
+        RoundManager.Callables.EndRound("Survivors")
+        return
+    end
+
     local Count = Utils.Character.GetCharactersWithRoles()
 
     local Survivors = #Count.Survivor
